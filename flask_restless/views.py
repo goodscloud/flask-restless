@@ -972,8 +972,9 @@ class API(ModelView):
         For a complete description of all possible search parameters and
         responses, see :ref:`searchformat`.
 
-        To limit the response to the properties of the top-level result
-        and not transfer related objects, add the ``flat`` request parameter.
+        To control which relations to follow, supply a JSON string in
+        the ``deep`` request parameter. It will be used as the ``deep``
+        parameter to :func:`helpers.to_dict`.
 
         """
         # try to get search query from the request query parameters
@@ -997,7 +998,7 @@ class API(ModelView):
             current_app.logger.exception(str(exception))
             return dict(message='Unable to construct query'), 400
 
-        if request.args.get('flat', None) is None:
+        if request.args.get('deep', None) is None:
             # create a placeholder for the relations of the returned models
             relations = frozenset(get_relations(self.model))
             # do not follow relations that will not be included in the response
@@ -1009,7 +1010,7 @@ class API(ModelView):
                 relations -= frozenset(self.exclude_columns)
             deep = dict((r, {}) for r in relations)
         else:
-            deep = {}
+            deep = json.loads(request.args.get('deep', '{}'))
 
         # for security purposes, don't transmit list as top-level JSON
         if isinstance(result, Query):
