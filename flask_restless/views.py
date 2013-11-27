@@ -877,16 +877,19 @@ class API(ModelView):
         constructor of this class.
 
         """
-        # create a placeholder for the relations of the returned models
-        relations = frozenset(get_relations(self.model))
-        # do not follow relations that will not be included in the response
-        if self.include_columns is not None:
-            cols = frozenset(self.include_columns)
-            rels = frozenset(self.include_relations)
-            relations &= (cols | rels)
-        elif self.exclude_columns is not None:
-            relations -= frozenset(self.exclude_columns)
-        deep = dict((r, {}) for r in relations)
+        if request.args.get('deep', None) is None:
+            # create a placeholder for the relations of the returned models
+            relations = frozenset(get_relations(self.model))
+            # do not follow relations that will not be included in the response
+            if self.include_columns is not None:
+                cols = frozenset(self.include_columns)
+                rels = frozenset(self.include_relations)
+                relations &= (cols | rels)
+            elif self.exclude_columns is not None:
+                relations -= frozenset(self.exclude_columns)
+            deep = dict((r, {}) for r in relations)
+        else:
+            deep = json.loads(request.args.get('deep', '{}'))
         return to_dict(inst, deep, exclude=self.exclude_columns,
                        exclude_relations=self.exclude_relations,
                        include=self.include_columns,
