@@ -14,11 +14,13 @@
 
 """
 import inspect
+from logging import warn
 
 from sqlalchemy import and_ as AND
 from sqlalchemy import or_ as OR
 from sqlalchemy.ext.associationproxy import AssociationProxy
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.orm import joinedload
 
 from .helpers import session_query
 from .helpers import get_related_association_proxy_model
@@ -383,7 +385,7 @@ class QueryBuilder(object):
         return filters
 
     @staticmethod
-    def create_query(session, model, search_params):
+    def create_query(session, model, search_params, deep=None):
         """Builds an SQLAlchemy query instance based on the search parameters
         present in ``search_params``, an instance of :class:`SearchParameters`.
 
@@ -407,7 +409,26 @@ class QueryBuilder(object):
 
         """
         # Adding field filters
-        query = session_query(session, model)
+        query = [session_query(session, model)]
+
+        def join_deep(deep, ns=[]):
+            """
+            parametrize the query to load all members
+            of ``deep`` via join strategy
+            """
+            for child_table, children in deep.items():
+                new_ns = ns + [child_table]
+                table_path = ".".join(new_ns)
+                try:
+                    query[0] = query[0].options(joinedload(table_path))
+                except:
+                    warn("Invalid deep for %s: %s", model.__name__, table_path)
+                join_deep(children, new_ns)
+
+        if deep:
+            join_deep(deep)
+        query = query.pop()
+
         # may raise exception here
         filters = QueryBuilder._create_filters(model, search_params)
         query = query.filter(search_params.junction(*filters))
@@ -432,7 +453,7 @@ class QueryBuilder(object):
         return query
 
 
-def create_query(session, model, searchparams):
+def create_query(session, model, searchparams, deep=None):
     """Returns a SQLAlchemy query object on the given `model` where the search
     for the query is defined by `searchparams`.
 
@@ -451,10 +472,10 @@ def create_query(session, model, searchparams):
     """
     if isinstance(searchparams, dict):
         searchparams = SearchParameters.from_dictionary(searchparams)
-    return QueryBuilder.create_query(session, model, searchparams)
+    return QueryBuilder.create_query(session, model, searchparams, deep)
 
 
-def search(session, model, search_params):
+def search(session, model, search_params, deep=None):
     """Performs the search specified by the given parameters on the model
     specified in the constructor of this class.
 
@@ -484,7 +505,7 @@ def search(session, model, search_params):
     # corresponding value is anything except those values which evaluate to
     # False (False, 0, the empty string, the empty list, etc.).
     is_single = search_params.get('single')
-    query = create_query(session, model, search_params)
+    query = create_query(session, model, search_params, deep)
     if is_single:
         # may raise NoResultFound or MultipleResultsFound
         return query.one()
