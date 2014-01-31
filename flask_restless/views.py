@@ -987,12 +987,17 @@ class API(ModelView):
             current_app.logger.exception(str(exception))
             return dict(message='Unable to decode data'), 400
 
+        if request.args.get('deep', None) is not None:
+            deep = json.loads(request.args.get('deep', '{}'))
+        else:
+            deep = None
+
         for preprocessor in self.preprocessors['GET_MANY']:
             preprocessor(search_params=search_params)
 
         # perform a filtered search
         try:
-            result = search(self.session, self.model, search_params)
+            result = search(self.session, self.model, search_params, deep)
         except NoResultFound:
             return dict(message='No result found'), 404
         except MultipleResultsFound:
@@ -1001,7 +1006,7 @@ class API(ModelView):
             current_app.logger.exception(str(exception))
             return dict(message='Unable to construct query'), 400
 
-        if request.args.get('deep', None) is None:
+        if deep is None:
             # create a placeholder for the relations of the returned models
             relations = frozenset(get_relations(self.model))
             # do not follow relations that will not be included in the response
@@ -1012,8 +1017,6 @@ class API(ModelView):
             elif self.exclude_columns is not None:
                 relations -= frozenset(self.exclude_columns)
             deep = dict((r, {}) for r in relations)
-        else:
-            deep = json.loads(request.args.get('deep', '{}'))
 
         # for security purposes, don't transmit list as top-level JSON
         if isinstance(result, Query):
