@@ -423,7 +423,8 @@ class QueryBuilder(object):
                     query[0] = query[0].options(joinedload(table_path))
                 except:
                     warn("Invalid deep for %s: %s", model.__name__, table_path)
-                join_deep(children, new_ns)
+                if len(new_ns) < 3:
+                    join_deep(children, new_ns)
 
         if deep:
             join_deep(deep)
