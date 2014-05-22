@@ -41,7 +41,7 @@ from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.query import Query
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, BadRequest
 
 from .helpers import count
 from .helpers import evaluate_functions
@@ -1004,7 +1004,7 @@ class API(ModelView):
             return dict(message='Multiple results found'), 400
         except Exception as exception:
             current_app.logger.exception(str(exception))
-            return dict(message='Unable to construct query'), 400
+            raise BadRequest(description=exception.message)
 
         if deep is None:
             # create a placeholder for the relations of the returned models
