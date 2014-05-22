@@ -1003,7 +1003,7 @@ class API(ModelView):
             return dict(message='Multiple results found'), 400
         except Exception as exception:
             current_app.logger.exception(str(exception))
-            raise BadRequest(description=exception.message)
+            raise BadRequest(str(exception))
 
         if deep is None:
             # create a placeholder for the relations of the returned models
