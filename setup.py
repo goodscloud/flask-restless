@@ -52,6 +52,6 @@ setup(
     tests_require=['nose'],
     extras_require={'xml': ["lxml"]},
     url='http://github.com/jfinkels/flask-restless',
-    version='1.14.0.2-dev',
+    version='1.14.0.3-dev',
     zip_safe=False
 )
