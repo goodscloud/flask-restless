@@ -1033,7 +1033,10 @@ class API(ModelView):
             return dict(message='Unable to decode data'), 400
 
         if request.args.get('deep', None) is not None:
-            deep = json.loads(request.args.get('deep', '{}'))
+            try:
+                deep = json.loads(request.args.get('deep', '{}'))
+            except(ValueError, AttributeError) as exc:
+                raise BadRequest(str(exc))
         else:
             deep = None
 
