@@ -922,7 +922,11 @@ class API(ModelView):
         constructor of this class.
 
         """
-        if request.args.get('deep', None) is None:
+        if request.args.get('deep', None) is not None:
+            deep = json.loads(request.args.get('deep', '{}'))
+        elif request.args.get('flat', None) is not None:
+            deep = {}
+        else:
             # create a placeholder for the relations of the returned models
             relations = frozenset(get_relations(self.model))
             # do not follow relations that will not be included in the response
@@ -933,8 +937,6 @@ class API(ModelView):
             elif self.exclude_columns is not None:
                 relations -= frozenset(self.exclude_columns)
             deep = dict((r, {}) for r in relations)
-        else:
-            deep = json.loads(request.args.get('deep', '{}'))
         return to_dict(inst, deep, exclude=self.exclude_columns,
                        exclude_relations=self.exclude_relations,
                        include=self.include_columns,
@@ -1024,6 +1026,9 @@ class API(ModelView):
         the ``deep`` request parameter. It will be used as the ``deep``
         parameter to :func:`helpers.to_dict`.
 
+        To eliminate all relations completely, supply the ``flat``
+        request parameter. This has the same effect as providing a
+        ``deep`` parameter with the value ``{}``.
         """
         # try to get search query from the request query parameters
         try:
@@ -1037,6 +1042,8 @@ class API(ModelView):
                 deep = json.loads(request.args.get('deep', '{}'))
             except(ValueError, AttributeError) as exc:
                 raise BadRequest(str(exc))
+        elif request.args.get('flat', None) is not None:
+            deep = {}
         else:
             deep = None
 
