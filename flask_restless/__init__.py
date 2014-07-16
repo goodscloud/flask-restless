@@ -16,7 +16,7 @@
 #:
 #: This should be the same as the version specified in the :file:`setup.py`
 #: file.
-__version__ = '1.14.0.7-dev'
+__version__ = '1.14.0.8-dev'
 
 # make the following names available as part of the public API
 from .manager import APIManager
