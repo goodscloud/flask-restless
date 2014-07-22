@@ -312,6 +312,8 @@ def to_dict(instance, deep=None, exclude=None, include=None,
         columns = column_attrs + hybrid_columns
     except NoInspectionAvailable:
         return instance
+    for hook in getattr(instance_type, 'filter_hooks', []):
+        exclude, include = hook(instance, exclude, include)
     # filter the columns based on exclude and include values
     if exclude is not None:
         columns = (c for c in columns if c not in exclude)
