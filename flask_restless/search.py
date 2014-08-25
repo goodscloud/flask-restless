@@ -18,6 +18,7 @@ from logging import warn
 
 from sqlalchemy import and_ as AND
 from sqlalchemy import or_ as OR
+from sqlalchemy.inspection import inspect as sql_inspect
 from sqlalchemy.ext.associationproxy import AssociationProxy
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.orm import joinedload
@@ -437,8 +438,11 @@ class QueryBuilder(object):
         # Order the search. If no order field is specified in the search
         # parameters, order by primary key.
         if search_params.order_by:
+            columns = sql_inspect(model).all_orm_descriptors.keys()
             for val in search_params.order_by:
+                assert val.field in columns
                 field = getattr(model, val.field)
+                assert val.direction in ('asc', 'desc',)
                 direction = getattr(field, val.direction)
                 query = query.order_by(direction())
         else:
