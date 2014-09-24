@@ -1548,12 +1548,12 @@ class TestHeaders(TestSupportPrefilled):
         assert 'application/json' == response.headers['Content-Type']
         assert 1 == loads(response.data)['id']
         # Check for accepting XML.
-        # headers = dict(Accept='application/xml')
-        # response = self.app.get('/api/person/1', headers=headers)
-        # assert 200 == response.status_code
-        # assert 'Content-Type' in response.headers
-        # assert 'application/xml' == response.headers['Content-Type']
-        # assert '<id>1</id>' in response.data
+        headers = dict(Accept='application/xml')
+        response = self.app.get('/api/person/1', headers=headers)
+        assert 200 == response.status_code
+        assert 'Content-Type' in response.headers
+        assert 'application/xml' in response.headers['Content-Type']
+        assert b'<id>1</id>' in response.data
 
 
 class TestSearch(TestSupportPrefilled):
