@@ -26,12 +26,14 @@ from __future__ import division
 from collections import defaultdict
 from functools import wraps
 import math
+import sys
 import warnings
 
 from flask import current_app
 from flask import json
 from flask import jsonify as _jsonify
 from flask import request
+from flask import Response
 from flask.views import MethodView
 from mimerender import FlaskMimeRender
 from sqlalchemy.exc import DataError
@@ -43,6 +45,11 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.query import Query
 from werkzeug.exceptions import BadRequest
 from werkzeug.exceptions import HTTPException
+
+try:
+    from lxml.etree import Element, SubElement, tostring
+except ImportError:
+    from xml.etree.ElementTree import Element, SubElement, tostring
 
 from .helpers import count
 from .helpers import evaluate_functions
@@ -74,6 +81,10 @@ _HEADERS = '__restless_headers'
 #: String used internally as a dictionary key for passing status code
 #: information from view functions to the :func:`jsonpify` function.
 _STATUS = '__restless_status_code'
+
+
+if sys.version_info <= (2, ):
+    str = unicode
 
 
 class ProcessingException(HTTPException):
@@ -338,6 +349,42 @@ def _parse_excludes(column_names):
             del relations[column]
     return columns, relations
 
+
+def _to_xml(parent, obj, wrap=False):
+    if isinstance(obj, dict):
+        if '__tablename__' in obj:
+            attrib = {}
+            if 'id' in obj:
+                attrib['id'] = str(obj.pop('id'))
+            parent = SubElement(parent, obj['__tablename__'], attrib=attrib)
+        elif wrap:
+            parent = SubElement(parent, 'item')
+        for k in sorted(obj.keys()):
+            if k.startswith('__'):
+                continue
+            c = SubElement(parent, k)
+            _to_xml(c, obj[k])
+        pass
+    else:
+        if wrap:
+            parent = SubElement(parent, 'item')
+        if isinstance(obj, (list, tuple, set)):
+            for i in obj:
+                _to_xml(parent, i, wrap=True)
+        elif isinstance(obj, str):
+            parent.text = obj
+        else:
+            parent.text = str(obj)
+
+
+def xmlify(*args, **kw):
+    data = dict(*args, **kw)
+    root = Element('root')
+    _to_xml(root, data)
+    xml = tostring(root, encoding='UTF-8')
+    return Response(xml, mimetype='application/xml')
+
+
 #: Creates the mimerender object necessary for decorating responses with a
 #: function that automatically formats the dictionary in the appropriate format
 #: based on the ``Accept`` header.
@@ -346,8 +393,7 @@ def _parse_excludes(column_names):
 #: :class:`mimerender.FlaskMimeRender` class. The second pair of parentheses
 #: creates the decorator, so that we can simply use the variable ``mimerender``
 #: as a decorator.
-# TODO fill in xml renderer
-mimerender = FlaskMimeRender()(default='json', json=jsonpify)
+mimerender = FlaskMimeRender()(default='json', json=jsonpify, xml=xmlify)
 
 
 class ModelView(MethodView):

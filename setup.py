@@ -50,6 +50,7 @@ setup(
     packages=['flask_restless'],
     test_suite='nose.collector',
     tests_require=['nose'],
+    extras_require={'xml': ["lxml"]},
     url='http://github.com/jfinkels/flask-restless',
     version='0.14.0-dev',
     zip_safe=False
