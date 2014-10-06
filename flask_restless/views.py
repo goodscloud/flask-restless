@@ -356,13 +356,19 @@ def _to_xml(parent, obj, wrap=False):
             attrib = {}
             if 'id' in obj:
                 attrib['id'] = str(obj.pop('id'))
-            parent = SubElement(parent, obj['_tablename'], attrib=attrib)
+            # If parent does not have an id attribute set, we are inside  a list
+            # of relations and therefore need a grouping element.
+            if not parent.attrib.get('id', None):
+                parent = SubElement(parent, obj['_tablename'], attrib=attrib)
         elif wrap:
             parent = SubElement(parent, 'item')
         for k in sorted(obj.keys()):
             if k.startswith('__'):
                 continue
             c = SubElement(parent, k)
+            # If we hold a single object, write its id attribute.
+            if type(obj[k]) == dict:
+                c.attrib['id'] = str(obj[k]['id'])
             _to_xml(c, obj[k])
         pass
     else:

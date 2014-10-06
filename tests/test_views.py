@@ -35,6 +35,11 @@ from sqlalchemy.orm.collections import column_mapped_collection as col_mapped
 from flask.ext.restless.helpers import to_dict
 from flask.ext.restless.manager import APIManager
 
+try:
+    from lxml.etree import fromstring
+except ImportError:
+    from xml.etree.ElementTree import fromstring
+
 from .helpers import DatabaseTestBase
 from .helpers import FlaskTestBase
 from .helpers import skip_unless
@@ -2098,3 +2103,36 @@ class TestAssociationProxy(DatabaseTestBase):
         assert response.status_code == 200
         data = loads(response.data)
         assert data['num_results'] == 1
+
+
+class TestXML(TestSupport):
+
+    def setUp(self):
+        super(TestXML,self).setUp()
+        manufacturer = self.CarManufacturer(name="Lada")
+        model1 = self.CarModel(name="Wreck", seats=1, manufacturer=manufacturer)
+        model2 = self.CarModel(name="Rust", seats=1, manufacturer=manufacturer)
+        self.session.add_all([manufacturer, model1, model2])
+        self.session.commit()
+
+        self.manager.create_api(self.CarManufacturer, methods=['GET'])
+        self.manager.create_api(self.CarModel, methods=['GET'])
+
+    def test_to_one_relation(self):
+        """Tests that one element with id attribute is created for to-one
+        relations.
+
+        """
+        headers = dict(Accept='application/xml')
+        response = self.app.get('/api/car_model/1', headers=headers)
+        xml = fromstring(response.data)
+        manufacturer_elem = xml.find('manufacturer')
+        assert 'id' in manufacturer_elem.attrib.keys()
+
+    def test_to_many_relation(self):
+        """Tests that a grouping element is created for to-many relations."""
+        headers = dict(Accept='application/xml')
+        response = self.app.get('/api/car_manufacturer/1', headers=headers)
+        xml = fromstring(response.data)
+        models_elem = xml.find('models')
+        assert len([e for e in models_elem]) == 2
