@@ -376,6 +376,8 @@ def _to_xml(parent, obj, wrap=False):
                 _to_xml(parent, i, wrap=True)
         elif isinstance(obj, (str, unicode)):
             parent.text = obj
+        elif obj is None:
+            pass
         else:
             parent.text = str(obj)
 
