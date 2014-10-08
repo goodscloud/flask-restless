@@ -355,10 +355,10 @@ def _to_xml(parent, obj, wrap=False):
         if '_tablename' in obj:
             if not parent.tag.endswith(obj['_tablename']):
                 parent = SubElement(parent, obj['_tablename'])
-            if 'id' in obj:
-                parent.attrib['id'] = str(obj.pop('id'))
         elif wrap:
             parent = SubElement(parent, 'item')
+        if 'id' in obj:
+            parent.attrib['id'] = str(obj.pop('id'))
         for k in sorted(obj.keys()):
             if k.startswith('__'):
                 continue
