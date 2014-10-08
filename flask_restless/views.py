@@ -353,13 +353,10 @@ def _parse_excludes(column_names):
 def _to_xml(parent, obj, wrap=False):
     if isinstance(obj, dict):
         if '_tablename' in obj:
-            attrib = {}
+            if not parent.tag.endswith(obj['_tablename']):
+                parent = SubElement(parent, obj['_tablename'])
             if 'id' in obj:
-                attrib['id'] = str(obj.pop('id'))
-            if parent.tag.endswith(obj['_tablename']):
-                parent.attrib['id'] = attrib['id']
-            else:
-                parent = SubElement(parent, obj['_tablename'], attrib=attrib)
+                parent.attrib['id'] = str(obj.pop('id'))
         elif wrap:
             parent = SubElement(parent, 'item')
         for k in sorted(obj.keys()):
